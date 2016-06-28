@@ -5,6 +5,11 @@
 #######################################################################################################################
 
 import xml.etree.ElementTree as ET
+import settings
+
+if settings.USE_AWS:
+    import boto3
+    s3 = boto3.resource('s3')
 
 # Namespace used for parsing the XML files.
 ns = {'default' : 'http://www.loc.gov/METS/', 'xlink' : 'http://www.w3.org/1999/xlink',
@@ -43,11 +48,19 @@ def remove_quotes(filename):
         return filename
 
 def get_text(filename):
-    tree = ET.parse(filename)
-    root = tree.getroot()
+    if settings.USE_AWS:
+        f = s3.Object(settings.AWS_BUCKET,filename)
+        root = ET.fromstring(f.get()['Body'].read())
+    else:
+        tree = ET.parse(filename)
+        root = tree.getroot()
     return text_iter(body(root)).replace(u'\xad','')
 
 def get_data(filename):
-    tree = ET.parse(filename)
-    root = tree.getroot()
+    if settings.USE_AWS:
+        f = s3.Object(settings.AWS_BUCKET,filename)
+        root = ET.fromstring(f.get()['Body'].read())
+    else:
+        tree = ET.parse(filename)
+        root = tree.getroot()
     return filename, year(root), text_iter(body(root))
